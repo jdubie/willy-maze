@@ -1,5 +1,5 @@
 (function() {
-  var Action, Algorithm, BOARD, BaseLine, Board, Canvas, DIM, Position, State, WIDTH, a, canvas, matrix, startState,
+  var Action, Algorithm, BOARD, BaseLine, Board, Canvas, DFS, DIM, Position, State, WIDTH, a, matrix, startState,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -14,7 +14,6 @@
       this.WIDTH = WIDTH;
       this.DIM = DIM;
       this.matrix = matrix;
-      if (!window) return;
       this.CELL = this.WIDTH / this.DIM;
       c = window.document.getElementById("myCanvas");
       this.ctx = c.getContext("2d");
@@ -32,6 +31,26 @@
       x = _arg.x, y = _arg.y;
       this.ctx.fillStyle = color;
       return this.ctx.fillRect(this.CELL * x, this.CELL * y, this.CELL, this.CELL);
+    };
+
+    Canvas.prototype.render = function() {
+      var x, y, _ref, _results;
+      _results = [];
+      for (x = 0, _ref = this.DIM; 0 <= _ref ? x <= _ref : x >= _ref; 0 <= _ref ? x++ : x--) {
+        _results.push((function() {
+          var _ref2, _results2;
+          _results2 = [];
+          for (y = 0, _ref2 = this.DIM; 0 <= _ref2 ? y <= _ref2 : y >= _ref2; 0 <= _ref2 ? y++ : y--) {
+            if (!this.matrix(x, y)) {
+              _results2.push(this.ctx.fillRect(this.CELL * x, this.CELL * y, this.CELL, this.CELL));
+            } else {
+              _results2.push(void 0);
+            }
+          }
+          return _results2;
+        }).call(this));
+      }
+      return _results;
     };
 
     Canvas.prototype.draw = function(state) {
@@ -64,7 +83,7 @@
     }
 
     Board.prototype.valid = function(p) {
-      return this._onBoard(p.x, p.y) && this._open(p.x, p.y);
+      return this._onBoard(p.x, p.y) && this._open(p.y, p.x);
     };
 
     Board.prototype._open = function(x, y) {
@@ -81,7 +100,7 @@
   })();
 
   matrix = function(x, y) {
-    return true;
+    return Math.round(Math.random() * 2) !== 2;
   };
 
   BOARD = new Board(matrix);
@@ -142,8 +161,6 @@
     Main
   */
 
-  canvas = new Canvas(500, 20, matrix);
-
   Algorithm = (function() {
 
     function Algorithm(state) {
@@ -151,14 +168,14 @@
     }
 
     Algorithm.prototype.run = function() {
-      var a;
+      var a, count;
+      count = 0;
       while (!this.state.isTerminal()) {
         a = this.getAction(this.state.actions());
         this.state = this.state.suc(a);
-        canvas.draw(this.state);
+        count++;
       }
-      console.log('DONE');
-      return canvas.draw(this.state);
+      return console.log('DONE', count);
     };
 
     return Algorithm;
@@ -174,10 +191,25 @@
     }
 
     BaseLine.prototype.getAction = function(actions) {
+      if (actions.length === 0) console.error('No actions');
       return actions[Math.floor(Math.random() * actions.length)];
     };
 
     return BaseLine;
+
+  })(Algorithm);
+
+  DFS = (function(_super) {
+
+    __extends(DFS, _super);
+
+    function DFS() {
+      DFS.__super__.constructor.apply(this, arguments);
+    }
+
+    DFS.prototype.getAction = function(actions) {};
+
+    return DFS;
 
   })(Algorithm);
 

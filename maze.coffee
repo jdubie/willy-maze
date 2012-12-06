@@ -3,7 +3,7 @@ WIDTH = 500
 
 class Canvas
   constructor: (@WIDTH, @DIM, @matrix) ->
-    return unless window
+    #return unless window?
     @CELL = @WIDTH / @DIM
     c = window.document.getElementById("myCanvas")
     @ctx = c.getContext("2d")
@@ -18,14 +18,14 @@ class Canvas
     @ctx.fillStyle = color
     @ctx.fillRect @CELL*x, @CELL*y, @CELL, @CELL
 
-  draw: (state) ->
+  render: ->
     #return unless window
-    #@erase()
-    #for x in [0..@DIM]
-    #  for y in [0..@DIM]
-    #    if @matrix(x,y)
-    #      @ctx.fillRect @CELL*x, @CELL*y, @CELL, @CELL
-    
+    for x in [0..@DIM]
+      for y in [0..@DIM]
+        if not @matrix(x,y)
+          @ctx.fillRect @CELL*x, @CELL*y, @CELL, @CELL
+
+  draw: (state) ->
     @drawPlayer(state.pos, "FF0000")
     @drawPlayer(state.ter, "00FF00")
 
@@ -45,14 +45,14 @@ class Board
         @mat[i][j] = matrix(i,j)
 
   valid: (p) ->
-    @_onBoard(p.x, p.y) and @_open(p.x, p.y)
+    @_onBoard(p.x, p.y) and @_open(p.y, p.x)
 
   _open: (x,y) -> @mat[x]?[y]
 
   _onBoard: (x,y) -> y >= 0 and y < DIM and x >= 0 and x < DIM
 
-#matrix = (x,y) -> Math.round(Math.random())
-matrix = (x,y) -> true
+matrix = (x,y) -> Math.round(Math.random() * 2) isnt 2
+#matrix = (x,y) -> true
 BOARD = new Board(matrix)
 
 class State
@@ -70,25 +70,42 @@ class Position
 ###
   Main
 ###
-canvas = new Canvas(500, 20, matrix)
+#canvas = new Canvas(500, 20, matrix)
+#canvas.render()
 #####
 
 
 class Algorithm
   constructor: (@state) ->
   run: ->
+    count = 0
     while not @state.isTerminal()
       a = @getAction(@state.actions())
       @state = @state.suc(a)
-      canvas.draw(@state)
-    console.log 'DONE'
-    canvas.draw(@state)
+      count++
+    console.log 'DONE', count
+
+      #a = @getAction(@state.actions())
+      #@state = @state.suc(a)
+      #canvas.draw(@state)
+      #foo = => @run() # closure
+      #unless @state.isTerminal()
+      #  setTimeout(foo, 1)
+      #else
+      #  console.log 'DONE'
 
 class BaseLine extends Algorithm
   getAction: (actions) ->
+    console.error('No actions') if actions.length is 0
     actions[Math.floor(Math.random() * actions.length)]
 
-startState = new State(new Position(0, 0), new Position(0, DIM - 1))
+class DFS extends Algorithm
+  getAction: (actions) ->
 
+startState = new State(new Position(0, 0), new Position(0, DIM - 1))
 a = new BaseLine(startState)
+#a = new DFS(startState)
+#a = new UCS(startState)
+
 a.run()
+
