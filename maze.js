@@ -1,5 +1,5 @@
 (function() {
-  var Action, Algorithm, BOARD, BaseLine, Board, Canvas, DIM, Position, State, WIDTH, a, matrix, startState,
+  var Action, Algorithm, BOARD, BaseLine, Board, Canvas, DIM, Position, State, WIDTH, a, canvas, matrix, startState,
     __hasProp = Object.prototype.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
@@ -14,6 +14,7 @@
       this.WIDTH = WIDTH;
       this.DIM = DIM;
       this.matrix = matrix;
+      if (!window) return;
       this.CELL = this.WIDTH / this.DIM;
       c = window.document.getElementById("myCanvas");
       this.ctx = c.getContext("2d");
@@ -34,15 +35,6 @@
     };
 
     Canvas.prototype.draw = function(state) {
-      var x, y, _ref, _ref2;
-      this.erase();
-      for (x = 0, _ref = this.DIM; 0 <= _ref ? x <= _ref : x >= _ref; 0 <= _ref ? x++ : x--) {
-        for (y = 0, _ref2 = this.DIM; 0 <= _ref2 ? y <= _ref2 : y >= _ref2; 0 <= _ref2 ? y++ : y--) {
-          if (this.matrix(x, y)) {
-            this.ctx.fillRect(this.CELL * x, this.CELL * y, this.CELL, this.CELL);
-          }
-        }
-      }
       this.drawPlayer(state.pos, "FF0000");
       return this.drawPlayer(state.ter, "00FF00");
     };
@@ -72,12 +64,12 @@
     }
 
     Board.prototype.valid = function(p) {
-      console.log('Board#valid', p);
-      return this._onBoard(p.x, p.y) && this.open(p.x, p.y);
+      return this._onBoard(p.x, p.y) && this._open(p.x, p.y);
     };
 
     Board.prototype._open = function(x, y) {
-      return this.mat[x][y];
+      var _ref;
+      return (_ref = this.mat[x]) != null ? _ref[y] : void 0;
     };
 
     Board.prototype._onBoard = function(x, y) {
@@ -89,7 +81,7 @@
   })();
 
   matrix = function(x, y) {
-    return 0;
+    return true;
   };
 
   BOARD = new Board(matrix);
@@ -106,10 +98,10 @@
     };
 
     State.prototype.actions = function() {
-      var a, _i, _len, _results;
+      var a, key, _results;
       _results = [];
-      for (_i = 0, _len = Action.length; _i < _len; _i++) {
-        a = Action[_i];
+      for (key in Action) {
+        a = Action[key];
         if (this.pos.canMove(a)) _results.push(a);
       }
       return _results;
@@ -150,6 +142,8 @@
     Main
   */
 
+  canvas = new Canvas(500, 20, matrix);
+
   Algorithm = (function() {
 
     function Algorithm(state) {
@@ -161,8 +155,10 @@
       while (!this.state.isTerminal()) {
         a = this.getAction(this.state.actions());
         this.state = this.state.suc(a);
+        canvas.draw(this.state);
       }
-      return console.log('DONE');
+      console.log('DONE');
+      return canvas.draw(this.state);
     };
 
     return Algorithm;
@@ -178,7 +174,7 @@
     }
 
     BaseLine.prototype.getAction = function(actions) {
-      return console.log(actions);
+      return actions[Math.floor(Math.random() * actions.length)];
     };
 
     return BaseLine;
