@@ -1,0 +1,8 @@
+{
+  "name": "willy-maze",
+  "version": "0.0.1",
+  "dependencies": {
+    "optimist": "*",
+    "browserify": "*"
+  }
+}
