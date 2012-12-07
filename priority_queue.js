@@ -21,8 +21,8 @@
    *
    * @param [options] If low is set to true returns lowest first.
    */
-  //module.exports = PriorityQueue = function(options) {
-  PriorityQueue = function(options) {
+  module.exports = PriorityQueue = function(options) {
+  //PriorityQueue = function(options) {
     var contents = [];
 
     var sorted = false;

@@ -1,2 +1,2 @@
 run:
-	coffee maze
+	coffee main
