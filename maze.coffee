@@ -1,8 +1,26 @@
-DIM = 20
+#PriorityQueue = require('./priority_queue')
+
+#
+# DFS and A* implementations from
+# http://www.stanford.edu/class/cs221/lectures/search.pdf
+#
+
+DIM = 200
 WIDTH = 500
 
+animateStates = (states) ->
+  canvas = new Canvas(WIDTH, DIM, BOARD)
+  canvas.render()
+
+  drawOne = ->
+    state = states.shift()
+    canvas.draw(state)
+    setTimeout(drawOne, 50) if states.length > 0
+
+  drawOne()
+
 animate = (state, path) ->
-  canvas = new Canvas(500, 20, BOARD)
+  canvas = new Canvas(WIDTH, DIM, BOARD)
   canvas.render()
   canvas.draw(state)
 
@@ -10,7 +28,7 @@ animate = (state, path) ->
     a = path.shift()
     state = state.suc(a)
     canvas.draw(state)
-    setTimeout(drawOne) if path.length > 0
+    setTimeout(drawOne, 100) if path.length > 0
 
   drawOne()
 
@@ -84,6 +102,7 @@ class Position
   move: (a) -> new Position(@x + a[0], @y + a[1])
   canMove: (a) -> BOARD.valid(@move(a))
   toString: -> "#{@x},#{@y}"
+  @random: -> new Position(Math.floor(Math.random()*DIM),Math.floor(Math.random()*DIM))
 
 
 class Random
@@ -109,22 +128,62 @@ class Random
       #else
       #  console.log 'DONE'
 
-explored = {}
+    #DFS = do
+    #  explored = {}
+    #
+    #  dfs = (path, s) ->
+    #    return path if s.isTerminal()
+    #    for a in s.actions()
+    #      t = s.suc(a)
+    #      continue if (t.id() in Object.keys(explored))
+    #      explored[t.id()] = true
+    #      _path = dfs(new Array(path..., a), t)
+    #      return _path if _path != null
+    #    return null
 
-dfs = (path, s) ->
-  return path if s.isTerminal()
-  for a in s.actions()
-    t = s.suc(a)
-    continue if (t.id() in Object.keys(explored))
-    explored[t.id()] = true
-    _path = dfs(new Array(path..., a), t)
-    return _path if _path != null
-  return null
+
+
+initState = new State(Position.random(), Position.random())
+
+#a = new Random(initState)
+#path = dfs([], initState)
+#if path then animate(initState, path)
 
 
 
-startState = new State(new Position(0, 0), new Position(DIM - 1, DIM - 1))
+path = []
 
-#a = new Random(startState)
-path = dfs([], startState)
-if path then animate(startState, path)
+foo = ->
+
+  h = (state) ->
+    Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y)
+  explored = {}
+  frontier = PriorityQueue()
+  frontier.push(initState, h(initState))
+  came_from = {}
+
+  reconstruct_path = (s) ->
+    if came_from[s.id()]
+      p = reconstruct_path(came_from[s.id()])
+      p.push(s)
+      return p
+    else
+      return [s]
+
+  while true
+    return null if frontier.size() is 0
+    {object, priority} = frontier._pop()
+    s = object
+    return reconstruct_path(s) if s.isTerminal()
+    #return s if s.isTerminal()
+    explored[s.id()] = true
+    for a in s.actions()
+      t = s.suc(a)
+      continue if t.id() in Object.keys(explored)
+      came_from[t.id()] = s
+      frontier.push(t, priority + 1 + h(s) - h(t))
+
+states = foo()
+#console.log path
+#if path then animate(initState, path)
+if states then animateStates(states)

@@ -1,15 +1,27 @@
 (function() {
-  var Action, BOARD, Board, Canvas, DIM, Position, Random, State, WIDTH, animate, dfs, explored, matrix, path, startState,
-    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
-    __slice = Array.prototype.slice;
+  var Action, BOARD, Board, Canvas, DIM, Position, Random, State, WIDTH, animate, animateStates, foo, initState, matrix, path, states,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  DIM = 20;
+  DIM = 200;
 
   WIDTH = 500;
 
+  animateStates = function(states) {
+    var canvas, drawOne;
+    canvas = new Canvas(WIDTH, DIM, BOARD);
+    canvas.render();
+    drawOne = function() {
+      var state;
+      state = states.shift();
+      canvas.draw(state);
+      if (states.length > 0) return setTimeout(drawOne, 50);
+    };
+    return drawOne();
+  };
+
   animate = function(state, path) {
     var canvas, drawOne;
-    canvas = new Canvas(500, 20, BOARD);
+    canvas = new Canvas(WIDTH, DIM, BOARD);
     canvas.render();
     canvas.draw(state);
     drawOne = function() {
@@ -17,7 +29,7 @@
       a = path.shift();
       state = state.suc(a);
       canvas.draw(state);
-      if (path.length > 0) return setTimeout(drawOne);
+      if (path.length > 0) return setTimeout(drawOne, 100);
     };
     return drawOne();
   };
@@ -178,6 +190,10 @@
       return "" + this.x + "," + this.y;
     };
 
+    Position.random = function() {
+      return new Position(Math.floor(Math.random() * DIM), Math.floor(Math.random() * DIM));
+    };
+
     return Position;
 
   })();
@@ -208,33 +224,50 @@
 
   })();
 
-  explored = {};
+  initState = new State(Position.random(), Position.random());
 
-  dfs = function(path, s) {
-    var a, t, _i, _len, _path, _ref, _ref2;
-    if (s.isTerminal()) return path;
-    _ref = s.actions();
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      a = _ref[_i];
-      t = s.suc(a);
-      if ((_ref2 = t.id(), __indexOf.call(Object.keys(explored), _ref2) >= 0)) {
-        continue;
+  path = [];
+
+  foo = function() {
+    var a, came_from, explored, frontier, h, object, priority, reconstruct_path, s, t, _i, _len, _ref, _ref2, _ref3;
+    h = function(state) {
+      return Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y);
+    };
+    explored = {};
+    frontier = PriorityQueue();
+    frontier.push(initState, h(initState));
+    came_from = {};
+    reconstruct_path = function(s) {
+      var p;
+      if (came_from[s.id()]) {
+        p = reconstruct_path(came_from[s.id()]);
+        p.push(s);
+        return p;
+      } else {
+        return [s];
       }
-      explored[t.id()] = true;
-      _path = dfs((function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args);
-        return typeof result === "object" ? result : child;
-      })(Array, __slice.call(path).concat([a]), function() {}), t);
-      if (_path !== null) return _path;
+    };
+    while (true) {
+      if (frontier.size() === 0) return null;
+      _ref = frontier._pop(), object = _ref.object, priority = _ref.priority;
+      s = object;
+      if (s.isTerminal()) return reconstruct_path(s);
+      explored[s.id()] = true;
+      _ref2 = s.actions();
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        a = _ref2[_i];
+        t = s.suc(a);
+        if (_ref3 = t.id(), __indexOf.call(Object.keys(explored), _ref3) >= 0) {
+          continue;
+        }
+        came_from[t.id()] = s;
+        frontier.push(t, priority + 1 + h(s) - h(t));
+      }
     }
-    return null;
   };
 
-  startState = new State(new Position(0, 0), new Position(DIM - 1, DIM - 1));
+  states = foo();
 
-  path = dfs([], startState);
-
-  if (path) animate(startState, path);
+  if (states) animateStates(states);
 
 }).call(this);
