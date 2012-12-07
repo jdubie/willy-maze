@@ -1,5 +1,19 @@
-DIM = 5
+DIM = 20
 WIDTH = 500
+
+animate = (state, path) ->
+  canvas = new Canvas(500, 20, BOARD)
+  canvas.render()
+  canvas.draw(state)
+
+  drawOne = ->
+    a = path.shift()
+    state = state.suc(a)
+    canvas.draw(state)
+    setTimeout(drawOne) if path.length > 0
+
+  drawOne()
+
 
 class Canvas
   constructor: (@WIDTH, @DIM, @matrix) ->
@@ -22,12 +36,14 @@ class Canvas
     #return unless window
     for x in [0..@DIM]
       for y in [0..@DIM]
-        if not @matrix(x,y)
+        if not @matrix._open(x,y)
           @ctx.fillRect @CELL*x, @CELL*y, @CELL, @CELL
 
   draw: (state) ->
-    @drawPlayer(state.pos, "FF0000")
+    @erase()
+    @render()
     @drawPlayer(state.ter, "00FF00")
+    @drawPlayer(state.pos, "FF0000")
 
 
 Action =
@@ -51,8 +67,8 @@ class Board
 
   _onBoard: (x,y) -> y >= 0 and y < DIM and x >= 0 and x < DIM
 
-  #matrix = (x,y) -> Math.round(Math.random() * 2) isnt 2
-matrix = (x,y) -> true
+matrix = (x,y) -> Math.round(Math.random() * 10) isnt 10
+#matrix = (x,y) -> true
 BOARD = new Board(matrix)
 
 class State
@@ -68,13 +84,6 @@ class Position
   move: (a) -> new Position(@x + a[0], @y + a[1])
   canMove: (a) -> BOARD.valid(@move(a))
   toString: -> "#{@x},#{@y}"
-
-###
-  Main
-###
-#canvas = new Canvas(500, 20, matrix)
-#canvas.render()
-#####
 
 
 class Random
@@ -101,6 +110,7 @@ class Random
       #  console.log 'DONE'
 
 explored = {}
+
 dfs = (path, s) ->
   return path if s.isTerminal()
   for a in s.actions()
@@ -111,11 +121,10 @@ dfs = (path, s) ->
     return _path if _path != null
   return null
 
-startState = new State(new Position(0, 0), new Position(0, DIM - 1))
+
+
+startState = new State(new Position(0, 0), new Position(DIM - 1, DIM - 1))
+
 #a = new Random(startState)
-p = dfs([], startState)
-console.log p
-
-#a = new UCS(startState)
-
-
+path = dfs([], startState)
+if path then animate(startState, path)

@@ -1,11 +1,26 @@
 (function() {
-  var Action, BOARD, Board, Canvas, DIM, Position, Random, State, WIDTH, dfs, explored, matrix, p, startState,
+  var Action, BOARD, Board, Canvas, DIM, Position, Random, State, WIDTH, animate, dfs, explored, matrix, path, startState,
     __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = Array.prototype.slice;
 
-  DIM = 5;
+  DIM = 20;
 
   WIDTH = 500;
+
+  animate = function(state, path) {
+    var canvas, drawOne;
+    canvas = new Canvas(500, 20, BOARD);
+    canvas.render();
+    canvas.draw(state);
+    drawOne = function() {
+      var a;
+      a = path.shift();
+      state = state.suc(a);
+      canvas.draw(state);
+      if (path.length > 0) return setTimeout(drawOne);
+    };
+    return drawOne();
+  };
 
   Canvas = (function() {
 
@@ -41,7 +56,7 @@
           var _ref2, _results2;
           _results2 = [];
           for (y = 0, _ref2 = this.DIM; 0 <= _ref2 ? y <= _ref2 : y >= _ref2; 0 <= _ref2 ? y++ : y--) {
-            if (!this.matrix(x, y)) {
+            if (!this.matrix._open(x, y)) {
               _results2.push(this.ctx.fillRect(this.CELL * x, this.CELL * y, this.CELL, this.CELL));
             } else {
               _results2.push(void 0);
@@ -54,8 +69,10 @@
     };
 
     Canvas.prototype.draw = function(state) {
-      this.drawPlayer(state.pos, "FF0000");
-      return this.drawPlayer(state.ter, "00FF00");
+      this.erase();
+      this.render();
+      this.drawPlayer(state.ter, "00FF00");
+      return this.drawPlayer(state.pos, "FF0000");
     };
 
     return Canvas;
@@ -100,7 +117,7 @@
   })();
 
   matrix = function(x, y) {
-    return true;
+    return Math.round(Math.random() * 10) !== 10;
   };
 
   BOARD = new Board(matrix);
@@ -165,10 +182,6 @@
 
   })();
 
-  /*
-    Main
-  */
-
   Random = (function() {
 
     function Random(state) {
@@ -218,10 +231,10 @@
     return null;
   };
 
-  startState = new State(new Position(0, 0), new Position(0, DIM - 1));
+  startState = new State(new Position(0, 0), new Position(DIM - 1, DIM - 1));
 
-  p = dfs([], startState);
+  path = dfs([], startState);
 
-  console.log(p);
+  if (path) animate(startState, path);
 
 }).call(this);
