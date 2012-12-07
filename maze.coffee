@@ -21,6 +21,7 @@ Action =
   RIGHT:  [ 1 , 0 ]
   LEFT:   [ -1, 0 ]
 
+
 class Board
   constructor: (matrix, @dim) ->
     @mat = []
@@ -36,7 +37,12 @@ class Board
 
   _onBoard: (x,y) -> y >= 0 and y < @dim and x >= 0 and x < @dim
 
-  State
+  random: -> Math.floor(Math.random() * @dim)
+
+board = null
+getBoard = -> board
+module.exports.init = (dim, matrix) ->
+  board = new Board(matrix, dim)
 
 exports.State = class State
   constructor: (@pos, @ter) ->
@@ -51,13 +57,10 @@ exports.Position = class Position
   move: (a) -> new Position(@x + a[0], @y + a[1])
   canMove: (a) -> board.valid(@move(a))
   toString: -> "#{@x},#{@y}"
-  @random: -> new Position(Math.floor(Math.random()*DIM),Math.floor(Math.random()*DIM))
-
+  @random: -> new Position(board.random(), board.random())
 
 exports.Random = (state) ->
-
   states = [state]
-
   while not state.isTerminal()
     actions = state.actions()
     if actions.length is 0
@@ -66,13 +69,10 @@ exports.Random = (state) ->
     a = actions[Math.floor(Math.random() * actions.length)]
     state = state.suc(a)
     states.push(state)
-
   states
 
 exports.DFS = (start) ->
-
   explored = {}
-
   dfs = (path, s) ->
     return path if s.isTerminal()
     for a in s.actions()
@@ -82,19 +82,12 @@ exports.DFS = (start) ->
       _path = dfs(new Array(path..., a), t)
       return _path if _path != null
     return null
-  
   pathToStates(start, dfs([], start))
-  
 
 exports.A_Star = (start) ->
 
   h = (state) ->
     Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y)
-
-  explored = {}
-  frontier = PriorityQueue()
-  frontier.push(start, h(start))
-  came_from = {}
 
   reconstruct_path = (s) ->
     if came_from[s.id()]
@@ -104,12 +97,16 @@ exports.A_Star = (start) ->
     else
       return [s]
 
+  explored = {}
+  frontier = PriorityQueue()
+  frontier.push(start, h(start))
+  came_from = {}
+
   while true
     return null if frontier.size() is 0
     {object, priority} = frontier._pop()
     s = object
     return reconstruct_path(s) if s.isTerminal()
-    #return s if s.isTerminal()
     explored[s.id()] = true
     for a in s.actions()
       t = s.suc(a)
