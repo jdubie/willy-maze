@@ -1,5 +1,4 @@
 PriorityQueue = require('./priority_queue')
-require('./seedrandom') # modifies Math global
 
 #
 # DFS and A* implementations from
@@ -22,7 +21,7 @@ Action =
   LEFT:   [ -1, 0 ]
 
 
-class Board
+exports.Board = class Board
   constructor: (matrix, @dim) ->
     @mat = []
     for i in [0..@dim]
@@ -41,8 +40,8 @@ class Board
 
 board = null
 getBoard = -> board
-module.exports.init = (dim, matrix) ->
-  board = new Board(matrix, dim)
+module.exports.init = (b) ->
+  board = b
 
 exports.State = class State
   constructor: (@pos, @ter) ->
