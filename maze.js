@@ -1,9 +1,9 @@
 (function() {
-  var Action, Algorithm, BOARD, BaseLine, Board, Canvas, DFS, DIM, Position, State, WIDTH, a, matrix, startState,
-    __hasProp = Object.prototype.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+  var Action, BOARD, Board, Canvas, DIM, Position, Random, State, WIDTH, dfs, explored, matrix, p, startState,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __slice = Array.prototype.slice;
 
-  DIM = 20;
+  DIM = 5;
 
   WIDTH = 500;
 
@@ -83,7 +83,7 @@
     }
 
     Board.prototype.valid = function(p) {
-      return this._onBoard(p.x, p.y) && this._open(p.y, p.x);
+      return this._onBoard(p.x, p.y) && this._open(p.x, p.y);
     };
 
     Board.prototype._open = function(x, y) {
@@ -100,7 +100,7 @@
   })();
 
   matrix = function(x, y) {
-    return Math.round(Math.random() * 2) !== 2;
+    return true;
   };
 
   BOARD = new Board(matrix);
@@ -130,6 +130,10 @@
       return this.pos.equal(this.ter);
     };
 
+    State.prototype.id = function() {
+      return this.pos.toString();
+    };
+
     return State;
 
   })();
@@ -153,6 +157,10 @@
       return BOARD.valid(this.move(a));
     };
 
+    Position.prototype.toString = function() {
+      return "" + this.x + "," + this.y;
+    };
+
     return Position;
 
   })();
@@ -161,62 +169,59 @@
     Main
   */
 
-  Algorithm = (function() {
+  Random = (function() {
 
-    function Algorithm(state) {
+    function Random(state) {
       this.state = state;
     }
 
-    Algorithm.prototype.run = function() {
-      var a, count;
+    Random.prototype.run = function() {
+      var a, actions, count;
       count = 0;
       while (!this.state.isTerminal()) {
-        a = this.getAction(this.state.actions());
+        actions = this.state.actions();
+        if (actions.length === 0) {
+          console.log('Stuck');
+          return;
+        }
+        a = actions[Math.floor(Math.random() * actions.length)];
         this.state = this.state.suc(a);
         count++;
       }
       return console.log('DONE', count);
     };
 
-    return Algorithm;
+    return Random;
 
   })();
 
-  BaseLine = (function(_super) {
+  explored = {};
 
-    __extends(BaseLine, _super);
-
-    function BaseLine() {
-      BaseLine.__super__.constructor.apply(this, arguments);
+  dfs = function(path, s) {
+    var a, t, _i, _len, _path, _ref, _ref2;
+    if (s.isTerminal()) return path;
+    _ref = s.actions();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      a = _ref[_i];
+      t = s.suc(a);
+      if ((_ref2 = t.id(), __indexOf.call(Object.keys(explored), _ref2) >= 0)) {
+        continue;
+      }
+      explored[t.id()] = true;
+      _path = dfs((function(func, args, ctor) {
+        ctor.prototype = func.prototype;
+        var child = new ctor, result = func.apply(child, args);
+        return typeof result === "object" ? result : child;
+      })(Array, __slice.call(path).concat([a]), function() {}), t);
+      if (_path !== null) return _path;
     }
-
-    BaseLine.prototype.getAction = function(actions) {
-      if (actions.length === 0) console.error('No actions');
-      return actions[Math.floor(Math.random() * actions.length)];
-    };
-
-    return BaseLine;
-
-  })(Algorithm);
-
-  DFS = (function(_super) {
-
-    __extends(DFS, _super);
-
-    function DFS() {
-      DFS.__super__.constructor.apply(this, arguments);
-    }
-
-    DFS.prototype.getAction = function(actions) {};
-
-    return DFS;
-
-  })(Algorithm);
+    return null;
+  };
 
   startState = new State(new Position(0, 0), new Position(0, DIM - 1));
 
-  a = new BaseLine(startState);
+  p = dfs([], startState);
 
-  a.run();
+  console.log(p);
 
 }).call(this);

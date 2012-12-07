@@ -1,4 +1,4 @@
-DIM = 20
+DIM = 5
 WIDTH = 500
 
 class Canvas
@@ -45,14 +45,14 @@ class Board
         @mat[i][j] = matrix(i,j)
 
   valid: (p) ->
-    @_onBoard(p.x, p.y) and @_open(p.y, p.x)
+    @_onBoard(p.x, p.y) and @_open(p.x, p.y)
 
   _open: (x,y) -> @mat[x]?[y]
 
   _onBoard: (x,y) -> y >= 0 and y < DIM and x >= 0 and x < DIM
 
-matrix = (x,y) -> Math.round(Math.random() * 2) isnt 2
-#matrix = (x,y) -> true
+  #matrix = (x,y) -> Math.round(Math.random() * 2) isnt 2
+matrix = (x,y) -> true
 BOARD = new Board(matrix)
 
 class State
@@ -60,12 +60,14 @@ class State
   suc: (a) -> new State(@pos.move(a), @ter)
   actions: -> (a for key, a of Action when @pos.canMove(a))
   isTerminal: -> @pos.equal(@ter)
+  id: -> @pos.toString()
 
 class Position
   constructor: (@x,@y) ->
   equal: (p) -> p.x is @x and p.y is @y
   move: (a) -> new Position(@x + a[0], @y + a[1])
   canMove: (a) -> BOARD.valid(@move(a))
+  toString: -> "#{@x},#{@y}"
 
 ###
   Main
@@ -75,12 +77,16 @@ class Position
 #####
 
 
-class Algorithm
+class Random
   constructor: (@state) ->
   run: ->
     count = 0
     while not @state.isTerminal()
-      a = @getAction(@state.actions())
+      actions = @state.actions()
+      if actions.length is 0
+        console.log 'Stuck'
+        return
+      a = actions[Math.floor(Math.random() * actions.length)]
       @state = @state.suc(a)
       count++
     console.log 'DONE', count
@@ -94,18 +100,22 @@ class Algorithm
       #else
       #  console.log 'DONE'
 
-class BaseLine extends Algorithm
-  getAction: (actions) ->
-    console.error('No actions') if actions.length is 0
-    actions[Math.floor(Math.random() * actions.length)]
-
-class DFS extends Algorithm
-  getAction: (actions) ->
+explored = {}
+dfs = (path, s) ->
+  return path if s.isTerminal()
+  for a in s.actions()
+    t = s.suc(a)
+    continue if (t.id() in Object.keys(explored))
+    explored[t.id()] = true
+    _path = dfs(new Array(path..., a), t)
+    return _path if _path != null
+  return null
 
 startState = new State(new Position(0, 0), new Position(0, DIM - 1))
-a = new BaseLine(startState)
-#a = new DFS(startState)
+#a = new Random(startState)
+p = dfs([], startState)
+console.log p
+
 #a = new UCS(startState)
 
-a.run()
 
