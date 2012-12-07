@@ -1,68 +1,19 @@
-#PriorityQueue = require('./priority_queue')
+PriorityQueue = require('./priority_queue')
+require('./seedrandom') # modifies Math global
 
 #
 # DFS and A* implementations from
 # http://www.stanford.edu/class/cs221/lectures/search.pdf
 #
 
-DIM = 200
-WIDTH = 500
-
-animateStates = (states) ->
-  canvas = new Canvas(WIDTH, DIM, BOARD)
-  canvas.render()
-
-  drawOne = ->
-    state = states.shift()
-    canvas.draw(state)
-    setTimeout(drawOne, 50) if states.length > 0
-
-  drawOne()
-
-animate = (state, path) ->
-  canvas = new Canvas(WIDTH, DIM, BOARD)
-  canvas.render()
-  canvas.draw(state)
-
-  drawOne = ->
-    a = path.shift()
-    state = state.suc(a)
-    canvas.draw(state)
-    setTimeout(drawOne, 100) if path.length > 0
-
-  drawOne()
-
-
-class Canvas
-  constructor: (@WIDTH, @DIM, @matrix) ->
-    #return unless window?
-    @CELL = @WIDTH / @DIM
-    c = window.document.getElementById("myCanvas")
-    @ctx = c.getContext("2d")
-    @ctx.fillStyle = "#008855"
-
-  erase: ->
-    @ctx.fillStyle = "#FFFFFF"
-    @ctx.fillRect 0, 0, @WIDTH, @WIDTH
-    @ctx.fillStyle = "#008855"
-
-  drawPlayer: ({x,y}, color) ->
-    @ctx.fillStyle = color
-    @ctx.fillRect @CELL*x, @CELL*y, @CELL, @CELL
-
-  render: ->
-    #return unless window
-    for x in [0..@DIM]
-      for y in [0..@DIM]
-        if not @matrix._open(x,y)
-          @ctx.fillRect @CELL*x, @CELL*y, @CELL, @CELL
-
-  draw: (state) ->
-    @erase()
-    @render()
-    @drawPlayer(state.ter, "00FF00")
-    @drawPlayer(state.pos, "FF0000")
-
+# helper
+pathToStates = (state, path) ->
+  states = [state]
+  for action in path
+    nextState = state.suc(action)
+    states.push nextState
+    state = nextState
+  animateStates(states)
 
 Action =
   UP:     [ 0 ,-1 ]
@@ -71,11 +22,11 @@ Action =
   LEFT:   [ -1, 0 ]
 
 class Board
-  constructor: (matrix) ->
+  constructor: (matrix, @dim) ->
     @mat = []
-    for i in [0..DIM]
+    for i in [0..@dim]
       @mat[i] = []
-      for j in [0..DIM]
+      for j in [0..@dim]
         @mat[i][j] = matrix(i,j)
 
   valid: (p) ->
@@ -83,83 +34,66 @@ class Board
 
   _open: (x,y) -> @mat[x]?[y]
 
-  _onBoard: (x,y) -> y >= 0 and y < DIM and x >= 0 and x < DIM
+  _onBoard: (x,y) -> y >= 0 and y < @dim and x >= 0 and x < @dim
 
-matrix = (x,y) -> Math.round(Math.random() * 10) isnt 10
-#matrix = (x,y) -> true
-BOARD = new Board(matrix)
+  State
 
-class State
+exports.State = class State
   constructor: (@pos, @ter) ->
   suc: (a) -> new State(@pos.move(a), @ter)
   actions: -> (a for key, a of Action when @pos.canMove(a))
   isTerminal: -> @pos.equal(@ter)
   id: -> @pos.toString()
 
-class Position
+exports.Position = class Position
   constructor: (@x,@y) ->
   equal: (p) -> p.x is @x and p.y is @y
   move: (a) -> new Position(@x + a[0], @y + a[1])
-  canMove: (a) -> BOARD.valid(@move(a))
+  canMove: (a) -> board.valid(@move(a))
   toString: -> "#{@x},#{@y}"
   @random: -> new Position(Math.floor(Math.random()*DIM),Math.floor(Math.random()*DIM))
 
 
-class Random
-  constructor: (@state) ->
-  run: ->
-    count = 0
-    while not @state.isTerminal()
-      actions = @state.actions()
-      if actions.length is 0
-        console.log 'Stuck'
-        return
-      a = actions[Math.floor(Math.random() * actions.length)]
-      @state = @state.suc(a)
-      count++
-    console.log 'DONE', count
+exports.Random = (state) ->
 
-      #a = @getAction(@state.actions())
-      #@state = @state.suc(a)
-      #canvas.draw(@state)
-      #foo = => @run() # closure
-      #unless @state.isTerminal()
-      #  setTimeout(foo, 1)
-      #else
-      #  console.log 'DONE'
+  states = [state]
 
-    #DFS = do
-    #  explored = {}
-    #
-    #  dfs = (path, s) ->
-    #    return path if s.isTerminal()
-    #    for a in s.actions()
-    #      t = s.suc(a)
-    #      continue if (t.id() in Object.keys(explored))
-    #      explored[t.id()] = true
-    #      _path = dfs(new Array(path..., a), t)
-    #      return _path if _path != null
-    #    return null
+  while not state.isTerminal()
+    actions = state.actions()
+    if actions.length is 0
+      console.log 'Stuck'
+      return null
+    a = actions[Math.floor(Math.random() * actions.length)]
+    state = state.suc(a)
+    states.push(state)
 
+  states
 
+exports.DFS = (start) ->
 
-initState = new State(Position.random(), Position.random())
+  explored = {}
 
-#a = new Random(initState)
-#path = dfs([], initState)
-#if path then animate(initState, path)
+  dfs = (path, s) ->
+    return path if s.isTerminal()
+    for a in s.actions()
+      t = s.suc(a)
+      continue if (t.id() in Object.keys(explored))
+      explored[t.id()] = true
+      _path = dfs(new Array(path..., a), t)
+      return _path if _path != null
+    return null
+  
+  pathToStates(start, dfs([], start))
+  
 
-
-
-path = []
-
-foo = ->
+exports.A_Star = (start) ->
 
   h = (state) ->
     Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y)
+
   explored = {}
   frontier = PriorityQueue()
-  frontier.push(initState, h(initState))
+  frontier.push(start, h(start))
   came_from = {}
 
   reconstruct_path = (s) ->
@@ -182,8 +116,3 @@ foo = ->
       continue if t.id() in Object.keys(explored)
       came_from[t.id()] = s
       frontier.push(t, priority + 1 + h(s) - h(t))
-
-states = foo()
-#console.log path
-#if path then animate(initState, path)
-if states then animateStates(states)

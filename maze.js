@@ -1,95 +1,23 @@
 (function() {
-  var Action, BOARD, Board, Canvas, DIM, Position, Random, State, WIDTH, animate, animateStates, foo, initState, matrix, path, states,
-    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+  var Action, Board, Position, PriorityQueue, State, pathToStates,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __slice = Array.prototype.slice;
 
-  DIM = 200;
+  PriorityQueue = require('./priority_queue');
 
-  WIDTH = 500;
+  require('./seedrandom');
 
-  animateStates = function(states) {
-    var canvas, drawOne;
-    canvas = new Canvas(WIDTH, DIM, BOARD);
-    canvas.render();
-    drawOne = function() {
-      var state;
-      state = states.shift();
-      canvas.draw(state);
-      if (states.length > 0) return setTimeout(drawOne, 50);
-    };
-    return drawOne();
-  };
-
-  animate = function(state, path) {
-    var canvas, drawOne;
-    canvas = new Canvas(WIDTH, DIM, BOARD);
-    canvas.render();
-    canvas.draw(state);
-    drawOne = function() {
-      var a;
-      a = path.shift();
-      state = state.suc(a);
-      canvas.draw(state);
-      if (path.length > 0) return setTimeout(drawOne, 100);
-    };
-    return drawOne();
-  };
-
-  Canvas = (function() {
-
-    function Canvas(WIDTH, DIM, matrix) {
-      var c;
-      this.WIDTH = WIDTH;
-      this.DIM = DIM;
-      this.matrix = matrix;
-      this.CELL = this.WIDTH / this.DIM;
-      c = window.document.getElementById("myCanvas");
-      this.ctx = c.getContext("2d");
-      this.ctx.fillStyle = "#008855";
+  pathToStates = function(state, path) {
+    var action, nextState, states, _i, _len;
+    states = [state];
+    for (_i = 0, _len = path.length; _i < _len; _i++) {
+      action = path[_i];
+      nextState = state.suc(action);
+      states.push(nextState);
+      state = nextState;
     }
-
-    Canvas.prototype.erase = function() {
-      this.ctx.fillStyle = "#FFFFFF";
-      this.ctx.fillRect(0, 0, this.WIDTH, this.WIDTH);
-      return this.ctx.fillStyle = "#008855";
-    };
-
-    Canvas.prototype.drawPlayer = function(_arg, color) {
-      var x, y;
-      x = _arg.x, y = _arg.y;
-      this.ctx.fillStyle = color;
-      return this.ctx.fillRect(this.CELL * x, this.CELL * y, this.CELL, this.CELL);
-    };
-
-    Canvas.prototype.render = function() {
-      var x, y, _ref, _results;
-      _results = [];
-      for (x = 0, _ref = this.DIM; 0 <= _ref ? x <= _ref : x >= _ref; 0 <= _ref ? x++ : x--) {
-        _results.push((function() {
-          var _ref2, _results2;
-          _results2 = [];
-          for (y = 0, _ref2 = this.DIM; 0 <= _ref2 ? y <= _ref2 : y >= _ref2; 0 <= _ref2 ? y++ : y--) {
-            if (!this.matrix._open(x, y)) {
-              _results2.push(this.ctx.fillRect(this.CELL * x, this.CELL * y, this.CELL, this.CELL));
-            } else {
-              _results2.push(void 0);
-            }
-          }
-          return _results2;
-        }).call(this));
-      }
-      return _results;
-    };
-
-    Canvas.prototype.draw = function(state) {
-      this.erase();
-      this.render();
-      this.drawPlayer(state.ter, "00FF00");
-      return this.drawPlayer(state.pos, "FF0000");
-    };
-
-    return Canvas;
-
-  })();
+    return animateStates(states);
+  };
 
   Action = {
     UP: [0, -1],
@@ -100,12 +28,13 @@
 
   Board = (function() {
 
-    function Board(matrix) {
-      var i, j;
+    function Board(matrix, dim) {
+      var i, j, _ref, _ref2;
+      this.dim = dim;
       this.mat = [];
-      for (i = 0; 0 <= DIM ? i <= DIM : i >= DIM; 0 <= DIM ? i++ : i--) {
+      for (i = 0, _ref = this.dim; 0 <= _ref ? i <= _ref : i >= _ref; 0 <= _ref ? i++ : i--) {
         this.mat[i] = [];
-        for (j = 0; 0 <= DIM ? j <= DIM : j >= DIM; 0 <= DIM ? j++ : j--) {
+        for (j = 0, _ref2 = this.dim; 0 <= _ref2 ? j <= _ref2 : j >= _ref2; 0 <= _ref2 ? j++ : j--) {
           this.mat[i][j] = matrix(i, j);
         }
       }
@@ -121,20 +50,16 @@
     };
 
     Board.prototype._onBoard = function(x, y) {
-      return y >= 0 && y < DIM && x >= 0 && x < DIM;
+      return y >= 0 && y < this.dim && x >= 0 && x < this.dim;
     };
+
+    State;
 
     return Board;
 
   })();
 
-  matrix = function(x, y) {
-    return Math.round(Math.random() * 10) !== 10;
-  };
-
-  BOARD = new Board(matrix);
-
-  State = (function() {
+  exports.State = State = (function() {
 
     function State(pos, ter) {
       this.pos = pos;
@@ -167,7 +92,7 @@
 
   })();
 
-  Position = (function() {
+  exports.Position = Position = (function() {
 
     function Position(x, y) {
       this.x = x;
@@ -183,7 +108,7 @@
     };
 
     Position.prototype.canMove = function(a) {
-      return BOARD.valid(this.move(a));
+      return board.valid(this.move(a));
     };
 
     Position.prototype.toString = function() {
@@ -198,44 +123,56 @@
 
   })();
 
-  Random = (function() {
-
-    function Random(state) {
-      this.state = state;
-    }
-
-    Random.prototype.run = function() {
-      var a, actions, count;
-      count = 0;
-      while (!this.state.isTerminal()) {
-        actions = this.state.actions();
-        if (actions.length === 0) {
-          console.log('Stuck');
-          return;
-        }
-        a = actions[Math.floor(Math.random() * actions.length)];
-        this.state = this.state.suc(a);
-        count++;
+  exports.Random = function(state) {
+    var a, actions, states;
+    states = [state];
+    while (!state.isTerminal()) {
+      actions = state.actions();
+      if (actions.length === 0) {
+        console.log('Stuck');
+        return null;
       }
-      return console.log('DONE', count);
+      a = actions[Math.floor(Math.random() * actions.length)];
+      state = state.suc(a);
+      states.push(state);
+    }
+    return states;
+  };
+
+  exports.DFS = function(start) {
+    var dfs, explored;
+    explored = {};
+    dfs = function(path, s) {
+      var a, t, _i, _len, _path, _ref, _ref2;
+      if (s.isTerminal()) return path;
+      _ref = s.actions();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        a = _ref[_i];
+        t = s.suc(a);
+        if ((_ref2 = t.id(), __indexOf.call(Object.keys(explored), _ref2) >= 0)) {
+          continue;
+        }
+        explored[t.id()] = true;
+        _path = dfs((function(func, args, ctor) {
+          ctor.prototype = func.prototype;
+          var child = new ctor, result = func.apply(child, args);
+          return typeof result === "object" ? result : child;
+        })(Array, __slice.call(path).concat([a]), function() {}), t);
+        if (_path !== null) return _path;
+      }
+      return null;
     };
+    return pathToStates(start, dfs([], start));
+  };
 
-    return Random;
-
-  })();
-
-  initState = new State(Position.random(), Position.random());
-
-  path = [];
-
-  foo = function() {
+  exports.A_Star = function(start) {
     var a, came_from, explored, frontier, h, object, priority, reconstruct_path, s, t, _i, _len, _ref, _ref2, _ref3;
     h = function(state) {
       return Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y);
     };
     explored = {};
     frontier = PriorityQueue();
-    frontier.push(initState, h(initState));
+    frontier.push(start, h(start));
     came_from = {};
     reconstruct_path = function(s) {
       var p;
@@ -265,9 +202,5 @@
       }
     }
   };
-
-  states = foo();
-
-  if (states) animateStates(states);
 
 }).call(this);
