@@ -13,7 +13,7 @@ pathToStates = (state, path) ->
     nextState = state.suc(action)
     states.push nextState
     state = nextState
-  animateStates(states)
+  states
 
 Action =
   UP:     [ 0 ,-1 ]
@@ -88,6 +88,35 @@ exports.A_Star = (start) ->
 
   h = (state) ->
     Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y)
+
+  reconstruct_path = (s) ->
+    if came_from[s.id()]
+      p = reconstruct_path(came_from[s.id()])
+      p.push(s)
+      return p
+    else
+      return [s]
+
+  explored = {}
+  frontier = PriorityQueue()
+  frontier.push(start, h(start))
+  came_from = {}
+
+  while true
+    return null if frontier.size() is 0
+    {object, priority} = frontier._pop()
+    s = object
+    return reconstruct_path(s) if s.isTerminal()
+    explored[s.id()] = true
+    for a in s.actions()
+      t = s.suc(a)
+      continue if t.id() in Object.keys(explored)
+      came_from[t.id()] = s
+      frontier.push(t, priority + 1 + h(s) - h(t))
+
+exports.BFS = (start) ->
+
+  h = (state) -> 0
 
   reconstruct_path = (s) ->
     if came_from[s.id()]

@@ -10,9 +10,10 @@ argv = optimist
   .default('d', 30)
   .argv
 
+Math.seedrandom('time-testing')
 matrix = (x,y) -> Math.round(Math.random() * 4) isnt 4
 init(argv.d, matrix)
 
 start = new State(new Position(0,0), new Position(argv.d - 1, argv.d - 1))
 
-states = maze[argv.a](start)
+console.log 'Path:', maze[argv.a](start).map (elem) -> elem.pos
