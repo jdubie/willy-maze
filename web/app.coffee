@@ -1,4 +1,6 @@
-maze = {init, Board, State, Position} = require './maze'
+Position  = require '../state_space/position'
+Board     = require '../state_space/board'
+State     = require '../state_space/state'
 animation = require './animation'
 
 dim = 200

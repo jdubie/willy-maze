@@ -40,4 +40,3 @@ class Canvas
     @render()
     @drawPlayer(state.ter, "00FF00")
     @drawPlayer(state.pos, "FF0000")
-

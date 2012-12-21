@@ -1,5 +1,11 @@
-optimist = require('optimist')
-maze = {init, State, Position} = require './maze'
+optimist = require 'optimist'
+Position = require './state_space/position'
+State    = require './state_space/state'
+Board    = require './state_space/board'
+A_Star = require './algs/a_star'
+DFS    = require './algs/dfs'
+BFS    = require './algs/bfs'
+Random = require './algs/random'
 
 argv = optimist
   .usage('Maze finder\ncoffee main -d 30 -a AStar')
@@ -10,10 +16,15 @@ argv = optimist
   .default('d', 30)
   .argv
 
-Math.seedrandom('time-testing')
-matrix = (x,y) -> Math.round(Math.random() * 4) isnt 4
-init(argv.d, matrix)
+randomMaze = (x, y) ->
+  Math.round(Math.random() * 4) isnt 4
 
-start = new State(new Position(0,0), new Position(argv.d - 1, argv.d - 1))
+board = new Board(randomMaze, argv.d)
+start = new State(board.randomPosition(), board.randomPosition())
 
-console.log 'Path:', maze[argv.a](start).map (elem) -> elem.pos
+algorithm = {A_Star, DFS, BFS, Random}[argv.a]
+
+path = algorithm(start, board)
+
+#### PRINT PATH #####
+console.log 'Path:', (path.map (elem) -> elem.pos)
