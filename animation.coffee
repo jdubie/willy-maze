@@ -1,12 +1,5 @@
+DIM = 30
 WIDTH = 500
-
-# assigned later
-BOARD = null
-DIM = null
-
-exports.init = (b) ->
-  DIM = b.dim
-  BOARD = b
 
 exports.animateStates = (states) ->
   canvas = new Canvas(WIDTH, DIM, BOARD)
