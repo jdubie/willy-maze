@@ -1,3 +1,8 @@
+##################################################
+## bfs.coffee
+## Breadth first search
+##################################################
+
 PriorityQueue = require('./priority_queue')
 
 module.exports = (start, board) ->

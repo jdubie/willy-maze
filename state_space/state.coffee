@@ -1,8 +1,9 @@
-Action =
-  UP:     [ 0 ,-1 ]
-  DOWN:   [ 0 , 1 ]
-  RIGHT:  [ 1 , 0 ]
-  LEFT:   [ -1, 0 ]
+##################################################
+## state.coffee
+##################################################
+
+
+Action = require './action'
 
 module.exports = class State
   constructor: (@pos, @ter) ->

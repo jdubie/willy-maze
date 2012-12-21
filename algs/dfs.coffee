@@ -1,11 +1,7 @@
-# helper
-pathToStates = (state, path) ->
-  states = [state]
-  for action in path
-    nextState = state.suc(action)
-    states.push nextState
-    state = nextState
-  states
+##################################################
+## dfs.coffee
+## Depth first search
+##################################################
 
 module.exports = (start, board) ->
   explored = {}
@@ -19,3 +15,13 @@ module.exports = (start, board) ->
       return _path if _path != null
     return null
   pathToStates(start, dfs([], start))
+
+# helper
+pathToStates = (state, path) ->
+  states = [state]
+  for action in path
+    nextState = state.suc(action)
+    states.push nextState
+    state = nextState
+  states
+

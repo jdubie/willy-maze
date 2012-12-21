@@ -1,7 +1,12 @@
-module.exports = (start, board) ->
+##################################################
+## a_star.coffee
+## A* search
+##################################################
 
-  h = (state) ->
-    Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y)
+PriorityQueue = require('./priority_queue')
+
+
+module.exports = (start, board) ->
 
   reconstruct_path = (s) ->
     if came_from[s.id()]
@@ -27,3 +32,6 @@ module.exports = (start, board) ->
       continue if t.id() in Object.keys(explored)
       came_from[t.id()] = s
       frontier.push(t, priority + 1 + h(s) - h(t))
+
+h = (state) ->
+  Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y)

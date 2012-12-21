@@ -1,17 +1,16 @@
-DIM = 30
 WIDTH = 500
+TRANSITION = 10
 
-exports.animateStates = (states) ->
-  canvas = new Canvas(WIDTH, DIM, BOARD)
+exports.animateStates = (states, board, dim) ->
+  canvas = new Canvas(WIDTH, dim, board)
   canvas.render()
 
   drawOne = ->
     state = states.shift()
     canvas.draw(state)
-    setTimeout(drawOne, 50) if states.length > 0
+    setTimeout(drawOne, TRANSITION) if states.length > 0
 
   drawOne()
-
 
 class Canvas
   constructor: (@WIDTH, @DIM, @matrix) ->

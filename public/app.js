@@ -394,7 +394,7 @@ process.binding = function (name) {
 require.define("/state_space/position.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
   var Position;
 
-  exports.Position = Position = (function() {
+  module.exports = Position = (function() {
 
     function Position(x, y) {
       this.x = x;
@@ -409,12 +409,8 @@ require.define("/state_space/position.coffee",function(require,module,exports,__
       return new Position(this.x + a[0], this.y + a[1]);
     };
 
-    Position.prototype.canMove = function(a) {
+    Position.prototype.canMove = function(a, board) {
       return board.valid(this.move(a));
-    };
-
-    Position.random = function() {
-      return new Position(board.random(), board.random());
     };
 
     Position.prototype.toString = function() {
@@ -430,9 +426,11 @@ require.define("/state_space/position.coffee",function(require,module,exports,__
 });
 
 require.define("/state_space/board.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
-  var Board;
+  var Board, Position;
 
-  exports.Board = Board = (function() {
+  Position = require('./position');
+
+  module.exports = Board = (function() {
 
     function Board(matrix, dim) {
       var i, j, _i, _j, _ref, _ref1;
@@ -463,6 +461,10 @@ require.define("/state_space/board.coffee",function(require,module,exports,__dir
       return Math.floor(Math.random() * this.dim);
     };
 
+    Board.prototype.randomPosition = function() {
+      return new Position(this.random(), this.random());
+    };
+
     return Board;
 
   })();
@@ -474,14 +476,9 @@ require.define("/state_space/board.coffee",function(require,module,exports,__dir
 require.define("/state_space/state.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
   var Action, State;
 
-  Action = {
-    UP: [0, -1],
-    DOWN: [0, 1],
-    RIGHT: [1, 0],
-    LEFT: [-1, 0]
-  };
+  Action = require('./action');
 
-  exports.State = State = (function() {
+  module.exports = State = (function() {
 
     function State(pos, ter) {
       this.pos = pos;
@@ -492,12 +489,12 @@ require.define("/state_space/state.coffee",function(require,module,exports,__dir
       return new State(this.pos.move(a), this.ter);
     };
 
-    State.prototype.actions = function() {
+    State.prototype.actions = function(board) {
       var a, key, _results;
       _results = [];
       for (key in Action) {
         a = Action[key];
-        if (this.pos.canMove(a)) {
+        if (this.pos.canMove(a, board)) {
           _results.push(a);
         }
       }
@@ -520,23 +517,365 @@ require.define("/state_space/state.coffee",function(require,module,exports,__dir
 
 });
 
-require.define("/web/animation.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
-  var Canvas, DIM, WIDTH;
+require.define("/state_space/action.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+  var Action;
 
-  DIM = 30;
+  module.exports = Action = {
+    UP: [0, -1],
+    DOWN: [0, 1],
+    RIGHT: [1, 0],
+    LEFT: [-1, 0]
+  };
+
+}).call(this);
+
+});
+
+require.define("/algs/a_star.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+  var PriorityQueue, h,
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  PriorityQueue = require('./priority_queue');
+
+  module.exports = function(start, board) {
+    var a, came_from, explored, frontier, object, priority, reconstruct_path, s, t, _i, _len, _ref, _ref1, _ref2;
+    reconstruct_path = function(s) {
+      var p;
+      if (came_from[s.id()]) {
+        p = reconstruct_path(came_from[s.id()]);
+        p.push(s);
+        return p;
+      } else {
+        return [s];
+      }
+    };
+    explored = {};
+    frontier = PriorityQueue();
+    frontier.push(start, h(start));
+    came_from = {};
+    while (true) {
+      if (frontier.size() === 0) {
+        return null;
+      }
+      _ref = frontier._pop(), object = _ref.object, priority = _ref.priority;
+      s = object;
+      if (s.isTerminal()) {
+        return reconstruct_path(s);
+      }
+      explored[s.id()] = true;
+      _ref1 = s.actions(board);
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        a = _ref1[_i];
+        t = s.suc(a);
+        if (_ref2 = t.id(), __indexOf.call(Object.keys(explored), _ref2) >= 0) {
+          continue;
+        }
+        came_from[t.id()] = s;
+        frontier.push(t, priority + 1 + h(s) - h(t));
+      }
+    }
+  };
+
+  h = function(state) {
+    return Math.abs(state.ter.x - state.pos.x) + Math.abs(state.ter.y - state.pos.y);
+  };
+
+}).call(this);
+
+});
+
+require.define("/algs/priority_queue.js",function(require,module,exports,__dirname,__filename,process,global){(function() {
+  /**
+   * @private
+   */
+  var prioritySortLow = function(a, b) {
+    return b.priority - a.priority;
+  };
+
+  /**
+   * @private
+   */
+  var prioritySortHigh = function(a, b) {
+    return a.priority - b.priority;
+  };
+
+  /*global PriorityQueue */
+  /**
+   * @constructor
+   * @class PriorityQueue manages a queue of elements with priorities. Default
+   * is highest priority first.
+   *
+   * @param [options] If low is set to true returns lowest first.
+   */
+  module.exports = PriorityQueue = function(options) {
+  //PriorityQueue = function(options) {
+    var contents = [];
+
+    var sorted = false;
+    var sortStyle;
+
+    if(options && options.low) {
+      sortStyle = prioritySortLow;
+    } else {
+      sortStyle = prioritySortHigh;
+    }
+
+    /**
+     * @private
+     */
+    var sort = function() {
+      contents.sort(sortStyle);
+      sorted = true;
+    };
+
+    var self = {
+      /**
+       * Removes and returns the next element in the queue.
+       * @member PriorityQueue
+       * @return The next element in the queue. If the queue is empty returns
+       * undefined.
+       *
+       * @see PrioirtyQueue#top
+       */
+      pop: function() {
+        if(!sorted) {
+          sort();
+        }
+
+        var element = contents.pop();
+
+        if(element) {
+          return element.object;
+        } else {
+          return undefined;
+        }
+      },
+
+      _pop: function() {
+        if(!sorted) {
+          sort();
+        }
+
+        var element = contents.pop();
+
+        if(element) {
+          return element;
+        } else {
+          return undefined;
+        }
+      },
+
+      /**
+       * Returns but does not remove the next element in the queue.
+       * @member PriorityQueue
+       * @return The next element in the queue. If the queue is empty returns
+       * undefined.
+       *
+       * @see PriorityQueue#pop
+       */
+      top: function() {
+        if(!sorted) {
+          sort();
+        }
+
+        var element = contents[contents.length - 1];
+
+        if(element) {
+          return element.object;
+        } else {
+          return undefined;
+        }
+      },
+
+      /**
+       * @member PriorityQueue
+       * @param object The object to check the queue for.
+       * @returns true if the object is in the queue, false otherwise.
+       */
+      includes: function(object) {
+        for(var i = contents.length - 1; i >= 0; i--) {
+          if(contents[i].object === object) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+
+      /**
+       * @member PriorityQueue
+       * @returns the current number of elements in the queue.
+       */
+      size: function() {
+        return contents.length;
+      },
+
+      /**
+       * @member PriorityQueue
+       * @returns true if the queue is empty, false otherwise.
+       */
+      empty: function() {
+        return contents.length === 0;
+      },
+
+      /**
+       * @member PriorityQueue
+       * @param object The object to be pushed onto the queue.
+       * @param priority The priority of the object.
+       */
+      push: function(object, priority) {
+        contents.push({object: object, priority: priority});
+        sorted = false;
+      }
+    };
+
+    return self;
+  };
+})();
+
+});
+
+require.define("/algs/dfs.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+  var pathToStates,
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    __slice = [].slice;
+
+  module.exports = function(start, board) {
+    var dfs, explored;
+    explored = {};
+    dfs = function(path, s) {
+      var a, t, _i, _len, _path, _ref, _ref1;
+      if (s.isTerminal()) {
+        return path;
+      }
+      _ref = s.actions(board);
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        a = _ref[_i];
+        t = s.suc(a);
+        if ((_ref1 = t.id(), __indexOf.call(Object.keys(explored), _ref1) >= 0)) {
+          continue;
+        }
+        explored[t.id()] = true;
+        _path = dfs((function(func, args, ctor) {
+          ctor.prototype = func.prototype;
+          var child = new ctor, result = func.apply(child, args);
+          return Object(result) === result ? result : child;
+        })(Array, __slice.call(path).concat([a]), function(){}), t);
+        if (_path !== null) {
+          return _path;
+        }
+      }
+      return null;
+    };
+    return pathToStates(start, dfs([], start));
+  };
+
+  pathToStates = function(state, path) {
+    var action, nextState, states, _i, _len;
+    states = [state];
+    for (_i = 0, _len = path.length; _i < _len; _i++) {
+      action = path[_i];
+      nextState = state.suc(action);
+      states.push(nextState);
+      state = nextState;
+    }
+    return states;
+  };
+
+}).call(this);
+
+});
+
+require.define("/algs/bfs.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+  var PriorityQueue,
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  PriorityQueue = require('./priority_queue');
+
+  module.exports = function(start, board) {
+    var a, came_from, explored, frontier, h, object, priority, reconstruct_path, s, t, _i, _len, _ref, _ref1, _ref2;
+    h = function(state) {
+      return 0;
+    };
+    reconstruct_path = function(s) {
+      var p;
+      if (came_from[s.id()]) {
+        p = reconstruct_path(came_from[s.id()]);
+        p.push(s);
+        return p;
+      } else {
+        return [s];
+      }
+    };
+    explored = {};
+    frontier = PriorityQueue();
+    frontier.push(start, h(start));
+    came_from = {};
+    while (true) {
+      if (frontier.size() === 0) {
+        return null;
+      }
+      _ref = frontier._pop(), object = _ref.object, priority = _ref.priority;
+      s = object;
+      if (s.isTerminal()) {
+        return reconstruct_path(s);
+      }
+      explored[s.id()] = true;
+      _ref1 = s.actions(board);
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        a = _ref1[_i];
+        t = s.suc(a);
+        if (_ref2 = t.id(), __indexOf.call(Object.keys(explored), _ref2) >= 0) {
+          continue;
+        }
+        came_from[t.id()] = s;
+        frontier.push(t, priority + 1 + h(s) - h(t));
+      }
+    }
+  };
+
+}).call(this);
+
+});
+
+require.define("/algs/random.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+
+  module.exports = function(state, board) {
+    var a, actions, states;
+    states = [state];
+    while (!state.isTerminal()) {
+      actions = state.actions(board);
+      if (actions.length === 0) {
+        return null;
+      }
+      a = actions[Math.floor(Math.random() * actions.length)];
+      state = state.suc(a);
+      states.push(state);
+    }
+    return states;
+  };
+
+}).call(this);
+
+});
+
+require.define("/web/animation.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+  var Canvas, TRANSITION, WIDTH;
 
   WIDTH = 500;
 
-  exports.animateStates = function(states) {
+  TRANSITION = 10;
+
+  exports.animateStates = function(states, board, dim) {
     var canvas, drawOne;
-    canvas = new Canvas(WIDTH, DIM, BOARD);
+    canvas = new Canvas(WIDTH, dim, board);
     canvas.render();
     drawOne = function() {
       var state;
       state = states.shift();
       canvas.draw(state);
       if (states.length > 0) {
-        return setTimeout(drawOne, 50);
+        return setTimeout(drawOne, TRANSITION);
       }
     };
     return drawOne();
@@ -604,7 +943,7 @@ require.define("/web/animation.coffee",function(require,module,exports,__dirname
 });
 
 require.define("/web/app.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
-  var Board, Position, State, animation, board, dim, matrix, path, start;
+  var A_Star, BFS, Board, DFS, Position, Random, State, animation, board, dim, path, randomMaze, start;
 
   Position = require('../state_space/position');
 
@@ -612,25 +951,33 @@ require.define("/web/app.coffee",function(require,module,exports,__dirname,__fil
 
   State = require('../state_space/state');
 
+  A_Star = require('../algs/a_star');
+
+  DFS = require('../algs/dfs');
+
+  BFS = require('../algs/bfs');
+
+  Random = require('../algs/random');
+
   animation = require('./animation');
 
-  dim = 200;
+  dim = 50;
 
-  matrix = function(x, y) {
+  randomMaze = function(x, y) {
     return Math.round(Math.random() * 4) !== 4;
   };
 
-  board = new Board(matrix, dim);
+  board = new Board(randomMaze, dim);
 
-  init(board);
+  start = new State(board.randomPosition(), board.randomPosition());
 
-  animation.init(board);
+  path = A_Star(start, board);
 
-  start = new State(Position.random(), Position.random());
+  path = DFS(start, board);
 
-  path = maze.A_Star(start);
+  path = algorithm(start, board);
 
-  animation.animateStates(path);
+  animation.animateStates(path, board, dim);
 
 }).call(this);
 

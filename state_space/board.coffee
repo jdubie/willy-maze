@@ -1,3 +1,7 @@
+##################################################
+## board.coffee
+##################################################
+
 Position = require './position'
 
 module.exports = class Board

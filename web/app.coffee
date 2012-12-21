@@ -1,17 +1,21 @@
 Position  = require '../state_space/position'
 Board     = require '../state_space/board'
 State     = require '../state_space/state'
+A_Star    = require '../algs/a_star'
+DFS       = require '../algs/dfs'
+BFS       = require '../algs/bfs'
+Random    = require '../algs/random'
 animation = require './animation'
 
-dim = 200
+dim = 50
 
 # TODO make a cool maze
-matrix = (x,y) -> Math.round(Math.random() * 4) isnt 4
-board = new Board(matrix, dim)
-init(board)
-animation.init(board)
+randomMaze = (x, y) ->
+  Math.round(Math.random() * 4) isnt 4
+board = new Board(randomMaze, dim)
+start = new State(board.randomPosition(), board.randomPosition())
 
-start = new State(Position.random(), Position.random())
-path = maze.A_Star(start)
-
-animation.animateStates(path)
+algorithms = {DFS, BFS, Random, A_Star}
+window.run = (algorithm) ->
+  path = algorithm(start, board)
+  animation.animateStates(path, board, dim)
