@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <link href="bootstrap.css" rel="stylesheet"></link>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Willy Maze</h1>
+      <div class="row">
+        <div class="span7">
+          <canvas id="myCanvas" width="500" height="500" style="border:1px solid #c3c3c3;">
+            Your browser does not support the HTML5 canvas tag.
+          </canvas>
+        </div>
+        <div class="span5">
+          <form class="form-horizontal">
+            <div class="control-group">
+              <label class="control-label" for="transition">Algorithm</label>
+              <div class="controls">
+                <select id="algorithm">
+                  <option>A_Star</option>
+                  <option>DFS</option>
+                  <option>BFS</option>
+                  <option>Random</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="transition">Delay</label>
+              <div class="controls">
+                <input id="transition" class="input-mini" type="text" value="50">
+                <span class="add-on">ms</span>
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="dim">Dimensions</label>
+              <div class="controls">
+                <input id="dim" class="input-mini" type="text" value="50">
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="controls">
+                <input class="btn" type="submit" value="Run">
+              </div>
+            </div>
+          </form>
+        </div>
+    </div>
+  </body>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+  <script src="app.js"></script>
+</html>
+
+
