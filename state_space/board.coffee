@@ -7,10 +7,10 @@ Position = require './position'
 module.exports = class Board
   constructor: (matrix, @dim) ->
     @mat = []
-    for i in [0..@dim]
+    for i in [0...@dim]
       @mat[i] = []
-      for j in [0..@dim]
-        @mat[i][j] = matrix(i,j)
+      for j in [0...@dim]
+        @mat[i][j] = matrix.get(i,j)
 
   valid: (p) ->
     @_onBoard(p.x, p.y) and @_open(p.x, p.y)

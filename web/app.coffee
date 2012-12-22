@@ -5,17 +5,39 @@ A_Star    = require '../algs/a_star'
 DFS       = require '../algs/dfs'
 BFS       = require '../algs/bfs'
 Random    = require '../algs/random'
-animation = require './animation'
+Canvas    = require '../web/canvas'
+prim      = require '../maze/prim'
+random    = require '../maze/random'
 
-dim = 50
+getDim = ->
+  e = window.document.getElementById('dim')
+  parseInt(e.value)
 
-# TODO make a cool maze
-randomMaze = (x, y) ->
-  Math.round(Math.random() * 4) isnt 4
-board = new Board(randomMaze, dim)
-start = new State(board.randomPosition(), board.randomPosition())
+getTransition = ->
+  e = window.document.getElementById('transition')
+  parseInt(e.value)
 
-algorithms = {DFS, BFS, Random, A_Star}
-window.run = (algorithm) ->
+getAlgorithm = ->
+  e = document.getElementById('algorithm')
+  {DFS, BFS, Random, A_Star}[e.value]
+
+$('form').submit (e) ->
+  e.preventDefault()
+
+  # get parameters
+  algorithm  = getAlgorithm()
+  dim        = getDim()
+  transition = getTransition()
+
+  # generate maze
+  #maze = prim(getDim())
+  maze = random
+
+  # create state space
+  board = new Board(maze, dim)
+  start = new State(board.randomPosition(), board.randomPosition())
+  canvas = new Canvas(board, dim, 500, transition)
+
+  # run algorithm
   path = algorithm(start, board)
-  animation.animateStates(path, board, dim)
+  canvas.animate(path)

@@ -1,19 +1,8 @@
 WIDTH = 500
 TRANSITION = 10
 
-exports.animateStates = (states, board, dim) ->
-  canvas = new Canvas(WIDTH, dim, board)
-  canvas.render()
-
-  drawOne = ->
-    state = states.shift()
-    canvas.draw(state)
-    setTimeout(drawOne, TRANSITION) if states.length > 0
-
-  drawOne()
-
-class Canvas
-  constructor: (@WIDTH, @DIM, @matrix) ->
+module.exports = class Canvas
+  constructor: (@matrix, @DIM = 50, @WIDTH = 500, @TRANSITION = 50) ->
     @CELL = @WIDTH / @DIM
     c = window.document.getElementById("myCanvas")
     @ctx = c.getContext("2d")
@@ -39,3 +28,12 @@ class Canvas
     @render()
     @drawPlayer(state.ter, "00FF00")
     @drawPlayer(state.pos, "FF0000")
+
+  animate: (states) ->
+    
+    drawOne = =>
+      state = states.shift()
+      @draw(state)
+      setTimeout(drawOne, @TRANSITION) if states.length > 0
+
+    drawOne()

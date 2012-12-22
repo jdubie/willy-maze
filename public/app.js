@@ -436,10 +436,10 @@ require.define("/state_space/board.coffee",function(require,module,exports,__dir
       var i, j, _i, _j, _ref, _ref1;
       this.dim = dim;
       this.mat = [];
-      for (i = _i = 0, _ref = this.dim; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+      for (i = _i = 0, _ref = this.dim; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
         this.mat[i] = [];
-        for (j = _j = 0, _ref1 = this.dim; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; j = 0 <= _ref1 ? ++_j : --_j) {
-          this.mat[i][j] = matrix(i, j);
+        for (j = _j = 0, _ref1 = this.dim; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; j = 0 <= _ref1 ? ++_j : --_j) {
+          this.mat[i][j] = matrix.get(i, j);
         }
       }
     }
@@ -859,35 +859,21 @@ require.define("/algs/random.coffee",function(require,module,exports,__dirname,_
 
 });
 
-require.define("/web/animation.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+require.define("/web/canvas.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
   var Canvas, TRANSITION, WIDTH;
 
   WIDTH = 500;
 
   TRANSITION = 10;
 
-  exports.animateStates = function(states, board, dim) {
-    var canvas, drawOne;
-    canvas = new Canvas(WIDTH, dim, board);
-    canvas.render();
-    drawOne = function() {
-      var state;
-      state = states.shift();
-      canvas.draw(state);
-      if (states.length > 0) {
-        return setTimeout(drawOne, TRANSITION);
-      }
-    };
-    return drawOne();
-  };
+  module.exports = Canvas = (function() {
 
-  Canvas = (function() {
-
-    function Canvas(WIDTH, DIM, matrix) {
+    function Canvas(matrix, DIM, WIDTH, TRANSITION) {
       var c;
-      this.WIDTH = WIDTH;
-      this.DIM = DIM;
       this.matrix = matrix;
+      this.DIM = DIM != null ? DIM : 50;
+      this.WIDTH = WIDTH != null ? WIDTH : 500;
+      this.TRANSITION = TRANSITION != null ? TRANSITION : 50;
       this.CELL = this.WIDTH / this.DIM;
       c = window.document.getElementById("myCanvas");
       this.ctx = c.getContext("2d");
@@ -934,6 +920,20 @@ require.define("/web/animation.coffee",function(require,module,exports,__dirname
       return this.drawPlayer(state.pos, "FF0000");
     };
 
+    Canvas.prototype.animate = function(states) {
+      var drawOne,
+        _this = this;
+      drawOne = function() {
+        var state;
+        state = states.shift();
+        _this.draw(state);
+        if (states.length > 0) {
+          return setTimeout(drawOne, _this.TRANSITION);
+        }
+      };
+      return drawOne();
+    };
+
     return Canvas;
 
   })();
@@ -942,8 +942,88 @@ require.define("/web/animation.coffee",function(require,module,exports,__dirname
 
 });
 
+require.define("/maze/prim.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+  var Matrix, prim;
+
+  module.exports = function(dim) {
+    var m, walls;
+    m = new Matrix(dim);
+    m.set(0, 0, true);
+    walls = m.wall(0, 0);
+    prim(m, walls);
+    return m;
+  };
+
+  prim = function(matrix, walls) {
+    if (walls.length === 0) {
+
+    }
+  };
+
+  Matrix = (function() {
+
+    function Matrix(dim) {
+      var i, j, _i, _j;
+      this.dim = dim;
+      this._d = [];
+      for (i = _i = 0; 0 <= dim ? _i < dim : _i > dim; i = 0 <= dim ? ++_i : --_i) {
+        this._d[i] = [];
+        for (j = _j = 0; 0 <= dim ? _j < dim : _j > dim; j = 0 <= dim ? ++_j : --_j) {
+          this._d[i][j] = false;
+        }
+      }
+    }
+
+    Matrix.prototype.walls = function(x, y) {
+      var adjacent, i, j, result, _i, _j, _len, _len1;
+      result = [];
+      adjacent = [-1, 0, 1];
+      for (_i = 0, _len = adjacent.length; _i < _len; _i++) {
+        i = adjacent[_i];
+        for (_j = 0, _len1 = adjacent.length; _j < _len1; _j++) {
+          j = adjacent[_j];
+          if (this.valid(i, j)) {
+            result.push([i, j]);
+          }
+        }
+      }
+      return result;
+    };
+
+    Matrix.prototype.valid = function(x, y) {
+      return (0 <= x && x < this.dim) && (0 <= y && y < this.dim);
+    };
+
+    Matrix.prototype.get = function(x, y) {
+      return this._d[x][y];
+    };
+
+    Matrix.prototype.set = function(x, y, value) {
+      return this._d[x][y] = value;
+    };
+
+    return Matrix;
+
+  })();
+
+}).call(this);
+
+});
+
+require.define("/maze/random.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
+
+  module.exports = {
+    get: function(x, y) {
+      return Math.round(Math.random() * 4) !== 4;
+    }
+  };
+
+}).call(this);
+
+});
+
 require.define("/web/app.coffee",function(require,module,exports,__dirname,__filename,process,global){(function() {
-  var A_Star, BFS, Board, DFS, Position, Random, State, animation, board, dim, path, randomMaze, start;
+  var A_Star, BFS, Board, Canvas, DFS, Position, Random, State, getAlgorithm, getDim, getTransition, prim, random;
 
   Position = require('../state_space/position');
 
@@ -959,25 +1039,48 @@ require.define("/web/app.coffee",function(require,module,exports,__dirname,__fil
 
   Random = require('../algs/random');
 
-  animation = require('./animation');
+  Canvas = require('../web/canvas');
 
-  dim = 50;
+  prim = require('../maze/prim');
 
-  randomMaze = function(x, y) {
-    return Math.round(Math.random() * 4) !== 4;
+  random = require('../maze/random');
+
+  getDim = function() {
+    var e;
+    e = window.document.getElementById('dim');
+    return parseInt(e.value);
   };
 
-  board = new Board(randomMaze, dim);
+  getTransition = function() {
+    var e;
+    e = window.document.getElementById('transition');
+    return parseInt(e.value);
+  };
 
-  start = new State(board.randomPosition(), board.randomPosition());
+  getAlgorithm = function() {
+    var e;
+    e = document.getElementById('algorithm');
+    return {
+      DFS: DFS,
+      BFS: BFS,
+      Random: Random,
+      A_Star: A_Star
+    }[e.value];
+  };
 
-  path = A_Star(start, board);
-
-  path = DFS(start, board);
-
-  path = algorithm(start, board);
-
-  animation.animateStates(path, board, dim);
+  $('form').submit(function(e) {
+    var algorithm, board, canvas, dim, maze, path, start, transition;
+    e.preventDefault();
+    algorithm = getAlgorithm();
+    dim = getDim();
+    transition = getTransition();
+    maze = random;
+    board = new Board(maze, dim);
+    start = new State(board.randomPosition(), board.randomPosition());
+    canvas = new Canvas(board, dim, 500, transition);
+    path = algorithm(start, board);
+    return canvas.animate(path);
+  });
 
 }).call(this);
 
